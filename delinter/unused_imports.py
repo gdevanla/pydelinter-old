@@ -45,7 +45,7 @@ class UnusedImportsDelinter(Delinter):
 
     # filter from with alias
     pattern_from_with_alias = re.compile(
-            'Unused (?P<dname>.*) imported from (?P<dname0>.*) as (?P<aname>.*)')
+            'Unused (?P<sub_dname>.*) imported from (?P<dname>.*) as (?P<aname>.*)')
 
     # filter from
     pattern_from = re.compile('Unused (?P<dname>.*) imported from (?P<aname>.*)')
@@ -86,8 +86,8 @@ class UnusedImportsDelinter(Delinter):
                                     dotted_as_name=m.group('dname'),
                                     alias=None)
                         return UnusedFromImportsWarning(
-                                    import_as_name=m.group('dname'),
-                                    dotted_as_name=m.group('dname0'),
+                                    import_as_name=m.group('sub_dname'),
+                                    dotted_as_name=m.group('dname'),
                                     alias=m.group('aname'))
             raise ValueError(f"Parsing failed for {warning}")
 
@@ -115,13 +115,13 @@ class RemoveUnusedImportTransformer(cst.CSTTransformer):
         pass
 
     @classmethod
-    def build_dotted_name(cls, import_alias: cst.ImportAlias):
+    def build_dotted_name(cls, import_alias: cst.Attribute):
         def walk(node):
             if isinstance(node, cst.Name):
                 return (node.value,)
             children = walk(node.value)
             return children + (node.attr.value,)
-        return walk(import_alias.name)
+        return walk(import_alias)
 
     def leave_import_alike(
         self,
@@ -131,13 +131,25 @@ class RemoveUnusedImportTransformer(cst.CSTTransformer):
         #import ipdb; ipdb.set_trace()
         pass
 
-    def is_unused_import(self, import_node: cst.Import):
+    def is_unused_import(self, import_node: cst.ImportAlias):
         for warning in self.warnings:
             if isinstance(warning, UnusedImportsWarning):
-                dotted_name = ".".join(self.build_dotted_name(import_node))
+                dotted_name = ".".join(self.build_dotted_name(import_node.name))
                 asname = None if not import_node.asname else import_node.asname.name.value
                 if (warning.dotted_as_name == dotted_name
-                        # TODO: additonal check
+                        and warning.alias == asname):
+                    return True
+        return False
+
+    def is_unused_import_from(self, module: cst.Module, import_node: cst.ImportAlias):
+        for warning in self.warnings:
+            print(warning)
+            if isinstance(warning, UnusedFromImportsWarning):
+                import ipdb; ipdb.set_trace()
+                dotted_name = ".".join(self.build_dotted_name(module))
+                asname = None if not import_node.asname else import_node.asname.name.value
+                if (warning.dotted_as_name == dotted_name
+                        and warning.import_as_name == import_node.name.value
                         and warning.alias == asname):
                     return True
         return False
@@ -165,5 +177,15 @@ class RemoveUnusedImportTransformer(cst.CSTTransformer):
         self, original_node: cst.ImportFrom, updated_node: cst.ImportFrom
     ) -> cst.ImportFrom:
         #import ipdb; ipdb.set_trace()
-        #import ipdb; ipdb.set_trace()
+        new_import_alias = []
+        for import_alias in updated_node.names:
+            if self.is_unused_import_from(updated_node.module, import_alias):
+                continue
+            new_import_alias.append(import_alias)
+        if new_import_alias:
+            new_import_alias[-1] = new_import_alias[-1].with_changes(
+                    comma=cst.MaybeSentinel.DEFAULT)
+            return updated_node.with_changes(names=new_import_alias)
+        if len(new_import_alias) == 0:
+            return cst.RemoveFromParent()
         return updated_node

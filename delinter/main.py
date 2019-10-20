@@ -15,7 +15,6 @@ import difflib
 def main():
     # accept pylint output
 
-
     with open('test/input/test_unused_imports.py') as f:
         code = "".join(f.readlines())
         source_tree = cst.parse_module(code)
