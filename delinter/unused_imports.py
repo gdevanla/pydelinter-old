@@ -15,14 +15,17 @@ undefined_references: Dict[cst.CSTNode, Set[str]] = defaultdict(set)
 
 pylint_str = str # output formatted string of Pylint output
 
-class Delinter:
-    pass
+@dataclasses.dataclass
+class BaseWarning:
+    file_path: str
+    line_no: int
 
 @dataclasses.dataclass
-class BaseUnusedImportsWarning:
+class BaseUnusedImportsWarning(BaseWarning):
     '''
     Sum type class to represent types
     '''
+    pass
 
 @dataclasses.dataclass
 class UnusedFromImportsWarning(BaseUnusedImportsWarning):
@@ -36,7 +39,11 @@ class UnusedImportsWarning(BaseUnusedImportsWarning):
     dotted_as_name: str
 
 
-class UnusedImportsDelinter(Delinter):
+class BaseDelinter:
+    pass
+
+class UnusedImportsDelinter(BaseDelinter):
+    CODE = 'W0611'
 
     # filter import without alias
     pattern_import = re.compile('Unused import (?P<dname>.*)')
@@ -58,45 +65,46 @@ class UnusedImportsDelinter(Delinter):
             (pattern_from, UnusedFromImportsWarning)]
 
     @classmethod
-    def parse_linter_warnings(cls,
-            warnings: tp.Iterable[pylint_str]) -> BaseUnusedImportsWarning:
+    def parse_linter_warning(cls,
+            warning: tp.Iterable[tp.Tuple[str, int, pylint_str]]) -> BaseUnusedImportsWarning:
         '''
         Filter just the linter warnings
         '''
-        def parse_warning(warning):
-            for pattern, class_ in cls.patterns:
-                m = re.match(pattern, warning)
-                if m:
-                    groups = m.groups()
-                    if class_ is UnusedImportsWarning:
-                        if len(groups) == 2:
-                            return UnusedImportsWarning(
-                                    alias=m.group('aname'),
-                                    dotted_as_name=m.group('dname')
-                                    )
+        file_path, line_no, warning = warning
+        for pattern, class_ in cls.patterns:
+            m = re.match(pattern, warning)
+            if m:
+                groups = m.groups()
+                if class_ is UnusedImportsWarning:
+                    if len(groups) == 2:
                         return UnusedImportsWarning(
-                                alias=None,
+                                file_path=file_path,
+                                line_no=line_no,
+                                alias=m.group('aname'),
                                 dotted_as_name=m.group('dname')
                                 )
+                    return UnusedImportsWarning(
+                            file_path=file_path,
+                            line_no=line_no,
+                            alias=None,
+                            dotted_as_name=m.group('dname')
+                            )
 
-                    if class_ is UnusedFromImportsWarning:
-                        if len(groups) == 2:
-                            return UnusedFromImportsWarning(
-                                    import_as_name=m.group('aname'),
-                                    dotted_as_name=m.group('dname'),
-                                    alias=None)
+                if class_ is UnusedFromImportsWarning:
+                    if len(groups) == 2:
                         return UnusedFromImportsWarning(
-                                    import_as_name=m.group('sub_dname'),
-                                    dotted_as_name=m.group('dname'),
-                                    alias=m.group('aname'))
-            raise ValueError(f"Parsing failed for {warning}")
-
-
-        import_warnings = []
-        for warning in warnings:
-            import_warnings.append(parse_warning(warning))
-        return import_warnings
-
+                                file_path=file_path,
+                                line_no=line_no,
+                                import_as_name=m.group('aname'),
+                                dotted_as_name=m.group('dname'),
+                                alias=None)
+                    return UnusedFromImportsWarning(
+                            file_path=file_path,
+                            line_no=line_no,
+                            import_as_name=m.group('sub_dname'),
+                            dotted_as_name=m.group('dname'),
+                            alias=m.group('aname'))
+        raise ValueError(f"Parsing failed for {warning}")
 
     @classmethod
     def update(cls, cst, warnings):
@@ -104,8 +112,6 @@ class UnusedImportsDelinter(Delinter):
         Apply the refactor on each of the linter warnings
         '''
         pass
-
-
 
 class RemoveUnusedImportTransformer(cst.CSTTransformer):
     METADATA_DEPENDENCIES = (cst.metadata.SyntacticPositionProvider,)
