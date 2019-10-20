@@ -34,7 +34,7 @@ class Delinter:
             if not m:
                 raise ValueError(f'Unknown format {warning}')
             file_path = m.group('file_path')
-            line_no = m.group('line_no')
+            line_no = int(m.group('line_no'))
             code = m.group('code')
             warning_text = m.group('warning')
 

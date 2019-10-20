@@ -5,8 +5,7 @@ import libcst as cst
 import delinter.unused_imports as unused_imports
 from delinter.main import Delinter
 
-source_code = '''
-import unitest.mock.patch, unittest.mock.patch as p1
+source_code = '''import unitest.mock.patch, unittest.mock.patch as p1
 import unitest.mock.patch, unittest.mock.patch as p2
 import unittest as t, unittest as t2
 import unitest.mock.patch as p
@@ -58,12 +57,10 @@ test_unused_imports.py:9: [W0611(unused-import), ] Unused x imported from collec
 expected_diff = (
 '''---
 +++
-@@ -1,13 +1,8 @@
-
+@@ -1,12 +1,7 @@
 -import unitest.mock.patch, unittest.mock.patch as p1
--import unitest.mock.patch, unittest.mock.patch as p2
+import unitest.mock.patch, unittest.mock.patch as p2
 -import unittest as t, unittest as t2
-+import unittest.mock.patch as p2
 +import unittest as t
 import unitest.mock.patch as p
 -import os
@@ -91,9 +88,15 @@ class TestUnusedImports(unittest.TestCase):
         fixed_module = wrapper.visit(
                 unused_imports.RemoveUnusedImportTransformer(parsed_warnings))
         diff = "".join(difflib.unified_diff(source_code.splitlines(1), fixed_module.code.splitlines(1)))
-        print('start')
+
         diff = diff.replace('+++ ', '+++').replace('--- ', '---').replace('\n ', '\n')
         new_expected_diff = expected_diff.replace('\n ', '\n')
+
+        print('----\n')
+        import pprint
+        pprint.pprint(new_expected_diff)
+        pprint.pprint(diff)
+        import ipdb; ipdb.set_trace()
         self.assertEqual(diff, new_expected_diff)
 
 
