@@ -42,7 +42,6 @@ class Delinter:
             parsed_warning = class_.parse_linter_warning(
                     (file_path, line_no, warning_text))
             parsed_warnings.append(parsed_warning)
-        import ipdb; ipdb.set_trace()
         return parsed_warnings
 
 

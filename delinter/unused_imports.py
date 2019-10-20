@@ -55,7 +55,7 @@ class UnusedImportsDelinter(BaseDelinter):
             'Unused (?P<sub_dname>.*) imported from (?P<dname>.*) as (?P<aname>.*)')
 
     # filter from
-    pattern_from = re.compile('Unused (?P<dname>.*) imported from (?P<aname>.*)')
+    pattern_from = re.compile('Unused (?P<aname>.*) imported from (?P<dname>.*)')
 
     patterns = [
             (pattern_import, UnusedImportsWarning),
@@ -149,9 +149,8 @@ class RemoveUnusedImportTransformer(cst.CSTTransformer):
 
     def is_unused_import_from(self, module: cst.Module, import_node: cst.ImportAlias):
         for warning in self.warnings:
-            print(warning)
             if isinstance(warning, UnusedFromImportsWarning):
-                import ipdb; ipdb.set_trace()
+                print(module, import_node)
                 dotted_name = ".".join(self.build_dotted_name(module))
                 asname = None if not import_node.asname else import_node.asname.name.value
                 if (warning.dotted_as_name == dotted_name

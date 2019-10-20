@@ -28,9 +28,10 @@ class TestUnusedImports(unittest.TestCase):
                 unused_imports.UnusedImportsWarning(file_path='test_unused_imports.py', line_no='5', alias=None, dotted_as_name='os'),
                 unused_imports.UnusedImportsWarning(file_path='test_unused_imports.py', line_no='6', alias='pd', dotted_as_name='pandas'),
                 unused_imports.UnusedImportsWarning(file_path='test_unused_imports.py', line_no='6', alias='np', dotted_as_name='numpy'),
-                unused_imports.UnusedFromImportsWarning(file_path='test_unused_imports.py', line_no='7', import_as_name='collections.abc', dotted_as_name='defaultdict', alias=None),
-                unused_imports.UnusedFromImportsWarning(file_path='test_unused_imports.py', line_no='7', import_as_name='collections.abc', dotted_as_name='OrderedDict', alias=None),
+                unused_imports.UnusedFromImportsWarning(file_path='test_unused_imports.py', line_no='7', import_as_name='defaultdict', dotted_as_name='collections.abc', alias=None),
+                unused_imports.UnusedFromImportsWarning(file_path='test_unused_imports.py', line_no='7', import_as_name='OrderedDict', dotted_as_name='collections.abc', alias=None),
                 unused_imports.UnusedFromImportsWarning(file_path='test_unused_imports.py', line_no='8', import_as_name='filterfalse', dotted_as_name='itertools', alias='_filterfalse')]
+        import ipdb; ipdb.set_trace()
         self.assertEqual(parsed_warnings, expected_warnings)
 
 if __name__ == '__main__':

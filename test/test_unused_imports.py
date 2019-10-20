@@ -8,28 +8,76 @@ from delinter.main import Delinter
 source_code = '''
 import unitest.mock.patch, unittest.mock.patch as p1
 import unitest.mock.patch, unittest.mock.patch as p2
-import unittest as t
+import unittest as t, unittest as t2
 import unitest.mock.patch as p
 import os
 import pandas as pd, numpy as np
 from collections.abc import defaultdict, OrderedDict
 from itertools import filterfalse as _filterfalse
+from collections.abc import x, y
 
-p2.mock() # use p1
+p2.mock() # use p2
 t.mock() # use t
-
+y.mock() # use y
 '''
 
 unused_import_warnings = '''
 test_unused_imports.py:1: [W0611(unused-import), ] Unused import unitest.mock.patch
 test_unused_imports.py:1: [W0611(unused-import), ] Unused unittest.mock.patch imported as p1
+test_unused_imports.py:3: [W0611(unused-import), ] Unused unittest imported as t2
 test_unused_imports.py:5: [W0611(unused-import), ] Unused import os
 test_unused_imports.py:6: [W0611(unused-import), ] Unused pandas imported as pd
 test_unused_imports.py:6: [W0611(unused-import), ] Unused numpy imported as np
 test_unused_imports.py:7: [W0611(unused-import), ] Unused defaultdict imported from collections.abc
 test_unused_imports.py:7: [W0611(unused-import), ] Unused OrderedDict imported from collections.abc
 test_unused_imports.py:8: [W0611(unused-import), ] Unused filterfalse imported from itertools as _filterfalse
+test_unused_imports.py:9: [W0611(unused-import), ] Unused x imported from collections.abc
 '''
+
+# expected_diff = '''---
+# +++
+# @@ -1,13 +1,8 @@
+# -import unitest.mock.patch, unittest.mock.patch as p1
+# -import unitest.mock.patch, unittest.mock.patch as p2
+# -import unittest as t, unittest as t2
+# +import unittest.mock.patch as p2
+# +import unittest as t
+#  import unitest.mock.patch as p
+# -import os
+# -import pandas as pd, numpy as np
+# -from collections.abc import defaultdict, OrderedDict
+# -from itertools import filterfalse as _filterfalse
+# -from collections.abc import x, y
+# +from collections.abc import y
+
+#  p2.mock() # use p2
+#  t.mock() # use t
+#  y.mock() # use y
+# '''
+
+expected_diff = (
+'''---
++++
+@@ -1,13 +1,8 @@
+
+-import unitest.mock.patch, unittest.mock.patch as p1
+-import unitest.mock.patch, unittest.mock.patch as p2
+-import unittest as t, unittest as t2
++import unittest.mock.patch as p2
++import unittest as t
+import unitest.mock.patch as p
+-import os
+-import pandas as pd, numpy as np
+-from collections.abc import defaultdict, OrderedDict
+-from itertools import filterfalse as _filterfalse
+-from collections.abc import x, y
++from collections.abc import y
+
+p2.mock() # use p2
+t.mock() # use t
+'''
+)
+
 
 class TestUnusedImports(unittest.TestCase):
 
@@ -38,18 +86,15 @@ class TestUnusedImports(unittest.TestCase):
         warnings = [w for w in warnings if w]
         parsed_warnings = Delinter.parse_linter_warnings(warnings)
 
-        expected_warnings = [
-                unused_imports.UnusedImportsWarning(file_path='test_unused_imports.py', line_no='1', alias=None, dotted_as_name='unitest.mock.patch'),
-                unused_imports.UnusedImportsWarning(file_path='test_unused_imports.py', line_no='1', alias='p1', dotted_as_name='unittest.mock.patch'),
-                unused_imports.UnusedImportsWarning(file_path='test_unused_imports.py', line_no='5', alias=None, dotted_as_name='os'),
-                unused_imports.UnusedImportsWarning(file_path='test_unused_imports.py', line_no='6', alias='pd', dotted_as_name='pandas'),
-                unused_imports.UnusedImportsWarning(file_path='test_unused_imports.py', line_no='6', alias='np', dotted_as_name='numpy'),
-                unused_imports.UnusedFromImportsWarning(file_path='test_unused_imports.py', line_no='7', import_as_name='collections.abc', dotted_as_name='defaultdict', alias=None),
-                unused_imports.UnusedFromImportsWarning(file_path='test_unused_imports.py', line_no='7', import_as_name='collections.abc', dotted_as_name='OrderedDict', alias=None),
-                unused_imports.UnusedFromImportsWarning(file_path='test_unused_imports.py', line_no='8', import_as_name='filterfalse', dotted_as_name='itertools', alias='_filterfalse')]
-        self.assertEqual(parsed_warnings, expected_warnings)
-
-
+        source_tree = cst.parse_module(source_code)
+        wrapper = cst.MetadataWrapper(source_tree)
+        fixed_module = wrapper.visit(
+                unused_imports.RemoveUnusedImportTransformer(parsed_warnings))
+        diff = "".join(difflib.unified_diff(source_code.splitlines(1), fixed_module.code.splitlines(1)))
+        print('start')
+        diff = diff.replace('+++ ', '+++').replace('--- ', '---').replace('\n ', '\n')
+        new_expected_diff = expected_diff.replace('\n ', '\n')
+        self.assertEqual(diff, new_expected_diff)
 
 
     # warnings = UnusedImportsDelinter.parse_linter_warnings([s2])
