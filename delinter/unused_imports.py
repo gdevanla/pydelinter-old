@@ -15,54 +15,6 @@ undefined_references: Dict[cst.CSTNode, Set[str]] = defaultdict(set)
 
 pylint_str = str # output formatted string of Pylint output
 
-class RemoveUnusedImportTransformer(cst.CSTTransformer):
-    METADATA_DEPENDENCIES = (cst.metadata.SyntacticPositionProvider,)
-
-    @classmethod
-    def build_dotted_name(cls, import_alias: cst.ImportAlias):
-        def walk(node):
-            if isinstance(node, cst.Name):
-                return (node.value,)
-            children = walk(node.value)
-            return children + (node.attr.value,)
-        return walk(import_alias.name)
-
-    def leave_import_alike(
-        self,
-        original_node: tp.Union[cst.Import, cst.ImportFrom],
-        updated_node: tp.Union[cst.Import, cst.ImportFrom],
-    ) -> tp.Union[cst.Import, cst.ImportFrom, cst.RemovalSentinel]:
-        #import ipdb; ipdb.set_trace()
-        pass
-
-    def leave_Import(
-        self, original_node: cst.Import, updated_node: cst.Import
-    ) -> cst.Import:
-        code = self.get_metadata(cst.metadata.SyntacticPositionProvider, original_node)
-
-        new_import_alias = []
-        for import_alias in updated_node.names:
-            dotted_name = self.build_dotted_name(import_alias)
-            if import_alias.asname:
-                continue
-            new_import_alias.append(import_alias)
-        if new_import_alias:
-            new_import_alias[-1] = new_import_alias[-1].with_changes(
-                    comma=cst.MaybeSentinel.DEFAULT)
-            return updated_node.with_changes(names=new_import_alias)
-        if code.start.line == 1:
-            return cst.RemoveFromParent()
-        return updated_node
-
-
-    def leave_ImportFrom(
-        self, original_node: cst.ImportFrom, updated_node: cst.ImportFrom
-    ) -> cst.ImportFrom:
-        #import ipdb; ipdb.set_trace()
-        #import ipdb; ipdb.set_trace()
-        return updated_node
-
-
 class Delinter:
     pass
 
@@ -152,3 +104,66 @@ class UnusedImportsDelinter(Delinter):
         Apply the refactor on each of the linter warnings
         '''
         pass
+
+
+
+class RemoveUnusedImportTransformer(cst.CSTTransformer):
+    METADATA_DEPENDENCIES = (cst.metadata.SyntacticPositionProvider,)
+
+    def __init__(self, warnings: tp.Union[UnusedImportsWarning, UnusedFromImportsWarning]):
+        self.warnings = warnings
+        pass
+
+    @classmethod
+    def build_dotted_name(cls, import_alias: cst.ImportAlias):
+        def walk(node):
+            if isinstance(node, cst.Name):
+                return (node.value,)
+            children = walk(node.value)
+            return children + (node.attr.value,)
+        return walk(import_alias.name)
+
+    def leave_import_alike(
+        self,
+        original_node: tp.Union[cst.Import, cst.ImportFrom],
+        updated_node: tp.Union[cst.Import, cst.ImportFrom],
+    ) -> tp.Union[cst.Import, cst.ImportFrom, cst.RemovalSentinel]:
+        #import ipdb; ipdb.set_trace()
+        pass
+
+    def is_unused_import(self, import_node: cst.Import):
+        for warning in self.warnings:
+            if isinstance(warning, UnusedImportsWarning):
+                dotted_name = ".".join(self.build_dotted_name(import_node))
+                asname = None if not import_node.asname else import_node.asname.name.value
+                if (warning.dotted_as_name == dotted_name
+                        # TODO: additonal check
+                        and warning.alias == asname):
+                    return True
+        return False
+
+    def leave_Import(
+        self, original_node: cst.Import, updated_node: cst.Import
+    ) -> cst.Import:
+
+        # code = self.get_metadata(cst.metadata.SyntacticPositionProvider, original_node)
+        new_import_alias = []
+        for import_alias in updated_node.names:
+            if self.is_unused_import(import_alias):
+                continue
+            new_import_alias.append(import_alias)
+        if new_import_alias:
+            new_import_alias[-1] = new_import_alias[-1].with_changes(
+                    comma=cst.MaybeSentinel.DEFAULT)
+            return updated_node.with_changes(names=new_import_alias)
+        if len(new_import_alias) == 0:
+            return cst.RemoveFromParent()
+        return updated_node
+
+
+    def leave_ImportFrom(
+        self, original_node: cst.ImportFrom, updated_node: cst.ImportFrom
+    ) -> cst.ImportFrom:
+        #import ipdb; ipdb.set_trace()
+        #import ipdb; ipdb.set_trace()
+        return updated_node
