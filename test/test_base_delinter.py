@@ -5,14 +5,14 @@ import delinter.unused_imports as unused_imports
 from delinter.main import Delinter
 
 unused_import_warnings = '''
-test_unused_imports.py:1:W0611::Unused import unitest.mock.patch
-test_unused_imports.py:1:W0611::Unused unittest.mock.patch imported as p1
-test_unused_imports.py:5:W0611::Unused import os
-test_unused_imports.py:6:W0611::Unused pandas imported as pd
-test_unused_imports.py:6:W0611::Unused numpy imported as np
-test_unused_imports.py:7:W0611::Unused defaultdict imported from collections.abc
-test_unused_imports.py:7:W0611::Unused OrderedDict imported from collections.abc
-test_unused_imports.py:8:W0611::Unused filterfalse imported from itertools as _filterfalse
+test_unused_imports.py:1:[W0611(unused-import),]Unused import unitest.mock.patch
+test_unused_imports.py:1:[W0611(unused-import),]Unused unittest.mock.patch imported as p1
+test_unused_imports.py:5:[W0611(unused-import),]Unused import os
+test_unused_imports.py:6:[W0611(unused-import),]Unused pandas imported as pd
+test_unused_imports.py:6:[W0611(unused-import),]Unused numpy imported as np
+test_unused_imports.py:7:[W0611(unused-import),]Unused defaultdict imported from collections.abc
+test_unused_imports.py:7:[W0611(unused-import),]Unused OrderedDict imported from collections.abc
+test_unused_imports.py:8:[W0611(unused-import),]Unused filterfalse imported from itertools as _filterfalse
 '''
 
 class TestUnusedImports(unittest.TestCase):

@@ -21,16 +21,16 @@ y.mock() # use y
 '''
 
 unused_import_warnings = '''
-test_unused_imports.py:1:W0611::Unused import unitest.mock.patch
-test_unused_imports.py:1:W0611::Unused unittest.mock.patch imported as p1
-test_unused_imports.py:3:W0611::Unused unittest imported as t2
-test_unused_imports.py:5:W0611::Unused import os
-test_unused_imports.py:6:W0611::Unused pandas imported as pd
-test_unused_imports.py:6:W0611::Unused numpy imported as np
-test_unused_imports.py:7:W0611::Unused defaultdict imported from collections.abc
-test_unused_imports.py:7:W0611::Unused OrderedDict imported from collections.abc
-test_unused_imports.py:8:W0611::Unused filterfalse imported from itertools as _filterfalse
-test_unused_imports.py:9:W0611::Unused x imported from collections.abc
+test_unused_imports.py:1:[W0611(unused-import),]Unused import unitest.mock.patch
+test_unused_imports.py:1:[W0611(unused-import),]Unused unittest.mock.patch imported as p1
+test_unused_imports.py:3:[W0611(unused-import),]Unused unittest imported as t2
+test_unused_imports.py:5:[W0611(unused-import),]Unused import os
+test_unused_imports.py:6:[W0611(unused-import),]Unused pandas imported as pd
+test_unused_imports.py:6:[W0611(unused-import),]Unused numpy imported as np
+test_unused_imports.py:7:[W0611(unused-import),]Unused defaultdict imported from collections.abc
+test_unused_imports.py:7:[W0611(unused-import),]Unused OrderedDict imported from collections.abc
+test_unused_imports.py:8:[W0611(unused-import),]Unused filterfalse imported from itertools as _filterfalse
+test_unused_imports.py:9:[W0611(unused-import),]Unused x imported from collections.abc
 '''
 
 # expected_diff = '''---
@@ -92,6 +92,16 @@ class TestUnusedImports(unittest.TestCase):
         diff = diff.replace('+++ ', '+++').replace('--- ', '---').replace('\n ', '\n')
         new_expected_diff = expected_diff.replace('\n ', '\n')
         self.assertEqual(diff, new_expected_diff)
+
+
+    # warnings = UnusedImportsDelinter.parse_linter_warnings([s2])
+    # with open('test/input/test_unused_imports.py') as f:
+    #     code = "".join(f.readlines())
+    #     source_tree = cst.parse_module(code)
+    #     wrapper = cst.MetadataWrapper(source_tree)
+    #     fixed_module = wrapper.visit(RemoveUnusedImportTransformer(warnings))
+    #     print("".join(difflib.unified_diff(code.splitlines(1), fixed_module.code.splitlines(1))))
+
 
 if __name__ == '__main__':
     unittest.main()
