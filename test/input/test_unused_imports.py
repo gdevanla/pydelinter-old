@@ -7,6 +7,7 @@ import pandas as pd, numpy as np
 from collections.abc import defaultdict, OrderedDict
 from itertools import filterfalse as _filterfalse
 from collections.abc import x, y
+from collections import *
 
 p2.mock() # use p2
 t.mock() # use t
