@@ -66,35 +66,40 @@ class Delinter:
 
 def main():
 
-    # parse args
-    # load files
-    # parse warnings
-    #
-
-    file_path = '/home/devanla/projects/rapc/helix'
-    #file_path = 'test/input/test_unused_imports.py'
+    #file_path = '/home/devanla/projects/rapc/RALib'
+    file_path = 'test/input/test_unused_imports.py'
     msg_template = r'{path}:{line}:[{msg_id}({symbol}),{obj}]{msg}'
     #msg_template = '{msg}'
-    pylint_command = f"{file_path} --enable=W --disable=C,R,E,F --msg-template={msg_template} "
+    pylint_command = f"{file_path} --enable=W --disable=C,R,E,F --msg-template={msg_template} --score=n"
     #pylint_command = f"{file_path} --enable=W --disable=C,R,E,F --output-format=parseable"
 
     from pylint import epylint as lint
-    out, err = lint.py_run(pylint_command, return_std=True)
+    out, _ = lint.py_run(pylint_command, return_std=True)
     result = "".join(out.readlines()).split('\n')
-    print(result)
     result = [r.strip() for r in result if r.strip() and not r.strip().
-            startswith('***')][1:-2]
-    #import pprint;pprint.pprint(result)
-    #print(result)
+            startswith('************* Module ')]
     parsed_warnings = Delinter.parse_linter_warnings(result)
 
-    with open(file_path) as f:
-        source_code = "".join(f.readlines())
-        source_tree = cst.parse_module(source_code)
-        wrapper = cst.MetadataWrapper(source_tree)
-        fixed_module = wrapper.visit(
-                unused_imports.RemoveUnusedImportTransformer(parsed_warnings))
-        print("".join(difflib.unified_diff(source_code.splitlines(1), fixed_module.code.splitlines(1))))
+    if os.path.isdir(file_path):
+        from pathlib import Path
+        files = Path(file_path).glob('**/*.py')
+    else:
+        files = [file_path]
+
+    for file_path in files:
+        with open(file_path) as f:
+            source_code = "".join(f.readlines())
+            source_tree = cst.parse_module(source_code)
+            wrapper = cst.MetadataWrapper(source_tree)
+            fixed_module = wrapper.visit(
+                    unused_imports.RemoveUnusedImportTransformer(parsed_warnings))
+            print("".join(difflib.unified_diff(
+                    source_code.splitlines(1),
+                    fixed_module.code.splitlines(1),
+                    fromfile=file_path,
+                    tofile=f'updated_{file_path}'
+                    )))
+
 
 if __name__ == '__main__':
     main()
