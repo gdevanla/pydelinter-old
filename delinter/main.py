@@ -1,6 +1,7 @@
 import os
 import re
 import typing as tp
+import difflib
 import collections
 import dataclasses
 from typing import Set
@@ -9,9 +10,10 @@ from typing import Union
 from collections import defaultdict
 
 import libcst as cst
-from delinter.unused_imports import UnusedImportsDelinter
-import difflib
+from pylint import epylint as lint
+
 from delinter import unused_imports
+from delinter.unused_imports import UnusedImportsDelinter
 
 SUPPORTED_LINTER_MAP = {
         UnusedImportsDelinter.CODE: UnusedImportsDelinter,
@@ -66,35 +68,32 @@ class Delinter:
 
 def main():
 
-    file_path = '/home/devanla/projects/rapc/RALib'
-    #file_path = 'test/input/test_unused_imports.py'
-    msg_template = r'{path}:{line}:[{msg_id}({symbol}),{obj}]{msg}'
-    #msg_template = '{msg}'
-    pylint_command = f"{file_path} --enable=W --disable=C,R,E,F --msg-template={msg_template} --score=n"
-    #pylint_command = f"{file_path} --enable=W --disable=C,R,E,F --output-format=parseable"
+    root_file_path = 'delinter/test/input/test_unused_imports.py'
+    msg_template = r'{abspath}:{line}:[{msg_id}({symbol}),{obj}]{msg}'
+    pylint_command = f"{root_file_path} --enable=W --disable=C,R,E,F --msg-template={msg_template} --score=n"
 
-    from pylint import epylint as lint
     out, _ = lint.py_run(pylint_command, return_std=True)
     result = "".join(out.readlines()).split('\n')
     result = [r.strip() for r in result if r.strip() and not r.strip().
             startswith('************* Module ')]
     parsed_warnings = Delinter.parse_linter_warnings(result)
-
-    if os.path.isdir(file_path):
+    if os.path.isdir(root_file_path):
         from pathlib import Path
-        files = Path(file_path).glob('**/*.py')
+        files = Path(root_file_path).glob('**/*.py')
     else:
-        files = [file_path]
+        files = [root_file_path]
 
     for file_path in files:
         with open(file_path) as f:
             source_code = "".join(f.readlines())
             source_tree = cst.parse_module(source_code)
             wrapper = cst.MetadataWrapper(source_tree)
+
+            local_warnings = [p for p in parsed_warnings if p.file_path == str(file_path)]
             fixed_module = wrapper.visit(
-                    unused_imports.RemoveUnusedImportTransformer(parsed_warnings))
-            a_file_path = os.path.join('a', file_path).replace('/home/devanla/projects/rapc/', '')
-            b_file_path = os.path.join('b', file_path).replace('/home/devanla/projects/rapc/', '')
+                    unused_imports.RemoveUnusedImportTransformer(local_warnings))
+            a_file_path = 'a' + str(file_path)
+            b_file_path = 'b' + str(file_path)
             print("".join(difflib.unified_diff(
                     source_code.splitlines(1),
                     fixed_module.code.splitlines(1),
