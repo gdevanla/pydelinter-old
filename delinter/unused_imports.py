@@ -145,9 +145,6 @@ class RemoveUnusedImportTransformer(cst.CSTTransformer):
                 if (warning.dotted_as_name == dotted_name
                         and warning.alias == asname):
                     if warning.line_no == line_no:
-                        print(warning)
-                        print(import_node)
-                        print(warning.line_no)
                         #import ipdb; ipdb.set_trace()
                         return True
                     else:
@@ -158,7 +155,6 @@ class RemoveUnusedImportTransformer(cst.CSTTransformer):
     def is_unused_import_from(self, line_no: int, module: cst.Module, import_node: cst.ImportAlias):
         for warning in self.warnings:
             if isinstance(warning, UnusedFromImportsWarning):
-                print(module, import_node)
                 dotted_name = ".".join(self.build_dotted_name(module))
                 asname = None if not import_node.asname else import_node.asname.name.value
                 if (warning.dotted_as_name == dotted_name
@@ -195,6 +191,9 @@ class RemoveUnusedImportTransformer(cst.CSTTransformer):
         code = self.get_metadata(cst.metadata.SyntacticPositionProvider, original_node)
         line_no = code.start.line
         new_import_alias = []
+        if isinstance(updated_node.names, cst.ImportStar):
+            # we do not handle ImportStar
+            return updated_node
         for import_alias in updated_node.names:
             if self.is_unused_import_from(line_no, updated_node.module, import_alias):
                 continue
