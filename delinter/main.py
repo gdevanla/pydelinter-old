@@ -66,8 +66,8 @@ class Delinter:
 
 def main():
 
-    #file_path = '/home/devanla/projects/rapc/RALib'
-    file_path = 'test/input/test_unused_imports.py'
+    file_path = '/home/devanla/projects/rapc/RALib'
+    #file_path = 'test/input/test_unused_imports.py'
     msg_template = r'{path}:{line}:[{msg_id}({symbol}),{obj}]{msg}'
     #msg_template = '{msg}'
     pylint_command = f"{file_path} --enable=W --disable=C,R,E,F --msg-template={msg_template} --score=n"
@@ -93,13 +93,14 @@ def main():
             wrapper = cst.MetadataWrapper(source_tree)
             fixed_module = wrapper.visit(
                     unused_imports.RemoveUnusedImportTransformer(parsed_warnings))
+            a_file_path = os.path.join('a', file_path).replace('/home/devanla/projects/rapc/', '')
+            b_file_path = os.path.join('b', file_path).replace('/home/devanla/projects/rapc/', '')
             print("".join(difflib.unified_diff(
                     source_code.splitlines(1),
                     fixed_module.code.splitlines(1),
-                    fromfile=file_path,
-                    tofile=f'updated_{file_path}'
+                    fromfile=a_file_path,
+                    tofile=b_file_path
                     )))
-
 
 if __name__ == '__main__':
     main()
